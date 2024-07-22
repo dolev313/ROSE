@@ -1,18 +1,18 @@
 from rose.common import obstacles, actions, config  # NOQA
 import time
 
-driver_name = "simulating"
+driver_name = "optimized run time"
 
 
 class Tree:
-    def __init__(self, act, x, y, score):
+    def __init__(self, act=actions.NONE, x=0, y=0, score=0):
         self.act = act
         self.x = x
         self.y = y
         self.score = score
         self.children = []
 
-    def get_children(self, world, layers):
+    def init_children(self, world, layers):
         if layers == 0:
             return
         valid_a = get_actions(world, self.x, self.y)
@@ -21,41 +21,50 @@ class Tree:
             self.children.append(Tree(act, new_x, new_y, cur_score))
 
         for child in self.children:
-            child.get_children(world, layers - 1)
+            child.init_children(world, layers - 1)
+
+    def append_children(self, world):
+        self.y += 1
+        if not self.children:
+            self.init_children(world, 1)
+        else:
+            for child in self.children:
+                child.append_children(world)
 
     def get_action(self):
-        self.update_scores()
         maxx = 0
-        act = actions.NONE
+        best_child = self
 
         for child in self.children:
-            if child.score > maxx:
-                maxx = child.score
-                act = child.act
+            cur = child.get_max()
+            if cur > maxx:
+                maxx = cur
+                best_child = child
 
-        return act
+        return best_child
 
-    def update_scores(self):
+    def get_max(self):
         if not self.children:
             return self.score
 
         maxx = 0
         for child in self.children:
-            maxx = max(maxx, child.update_scores())
+            maxx = max(maxx, child.get_max())
 
-        self.score = maxx
         return maxx
 
     def print_tree(self, i):
+        if i == 0:
+            print("----- printing tree -----")
         print(self.act, self.x, self.y, self.score)
         for child in self.children:
             print("-->" * i, end="")
             child.print_tree(i + 1)
-            print()
 
 
 lane: int = 0
-laneFlag: bool = False
+initFlag: bool = False
+driving_tree = Tree()
 
 iter_num = 0
 total_time = 0
@@ -63,22 +72,21 @@ total_time = 0
 
 def drive(world):
     start = time.time()
-    global lane, laneFlag, iter_num, total_time
-    if not laneFlag:
+    global lane, initFlag, driving_tree, iter_num, total_time
+    if not initFlag:
         lane = (world.car.x // 3) * 3
-        # print("lane: ", lane)
-        laneFlag = True
+        driving_tree = Tree(actions.NONE, world.car.x, world.car.y, 0)
+        driving_tree.init_children(world, 6)
+        initFlag = True
+    else:
+        driving_tree.append_children(world)
 
-    x, y = world.car.x, world.car.y
-
-    driving_tree = Tree(actions.NONE, x, y, 0)
-    driving_tree.get_children(world, 6)
-
+    driving_tree = driving_tree.get_action()
     end = time.time()
     total_time += end - start
     iter_num += 1
     print(f"avg reaction time: {total_time / iter_num * 1000}")
-    return driving_tree.get_action()
+    return driving_tree.act
 
 
 def get_actions(world, x, y):
