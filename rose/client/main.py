@@ -99,9 +99,27 @@ def main():
         " For example: '10.20.30.44' or 'my-server.com'."
         " If not specified, localhost will be used.",
     )
+
+    # add the mode optional flag
+    parser.add_argument(
+        "--mode",
+        "-m",
+        dest="mode",
+        default="normal",
+        choices=["normal", "limited"],
+        help="Definition of driver valid noves: all valid or limited actions."
+        "If not specified, noraml (all valid) will be used.",
+    )
+
     parser.add_argument("driver_file", help="The path to the driver python module")
 
     args = parser.parse_args()
+
+    # change config file with flag
+    if args.mode == "limited":
+        config.actions_limited = True
+    else:
+        config.actions_limited = False
 
     try:
         driver_mod = load_driver_module(args.driver_file)

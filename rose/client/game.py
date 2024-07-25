@@ -1,10 +1,11 @@
 import logging
 import time
+import random
 
 
 from twisted.internet import reactor
 
-from rose.common import message
+from rose.common import message, actions, config
 from . import track
 from . import car
 from . import world
@@ -18,6 +19,11 @@ class Game(component.Component):
     def __init__(self, client, name, drive_func):
         self.client = client
         self.drive_func = drive_func
+        print(config.actions_limited)
+        # init action list matching to flag given
+        self.action_list = (
+            actions.init_actions() if config.actions_limited else actions.ALL
+        )
         self.name = name
         self.track = track.Track()
         self.players = {}
@@ -39,7 +45,11 @@ class Game(component.Component):
     def drive(self):
         start = time.time()
         try:
-            action = self.drive_func(self.world)
+            action = self.drive_func(self.world, self.action_list)
+            if action not in self.action_list:
+                action = random.choice(self.action_list)
+            if config.actions_limited:  # update action list coresponding to flag
+                actions.update_actions(self.action_list, action)
         except Exception:
             # Make it easy to detect and handle errors by crashing loudly. In
             # the past we used to print a traceback and continue, and students
