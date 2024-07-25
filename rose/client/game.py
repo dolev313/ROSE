@@ -47,8 +47,11 @@ class Game(component.Component):
         try:
             action = self.drive_func(self.world, self.action_list)
             if action not in self.action_list:
+                # if the driver returns an action that is not in the list of actions
+                # choosing a random action from the action list
                 action = random.choice(self.action_list)
-            if config.actions_limited:  # update action list coresponding to flag
+            if config.actions_limited:
+                # updating the action list corresponding to flag
                 actions.update_actions(self.action_list, action)
         except Exception:
             # Make it easy to detect and handle errors by crashing loudly. In

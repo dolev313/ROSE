@@ -115,7 +115,9 @@ def main():
 
     args = parser.parse_args()
 
-    # change config file with flag
+    """
+        If the argument is 'limited', the actions will be limited to 4 and will be random 
+    """
     if args.mode == "limited":
         config.actions_limited = True
     else:
